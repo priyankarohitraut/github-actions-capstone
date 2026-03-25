@@ -52,4 +52,8 @@ docker run -p 5000:5000 capstone-app
 ---
 
 Built as part of DevOps learning 🚀
+# 🚀 GitHub Actions Capstone
 
+![PR Pipeline](https://github.com/priyankaraut19/github-actions-capstone/actions/workflows/pr-pipeline.yml/badge.svg)
+![Main Pipeline](https://github.com/priyankaraut19/github-actions-capstone/actions/workflows/docker-publish.yml/badge.svg)
+![Health Check](https://github.com/priyankaraut19/github-actions-capstone/actions/workflows/health-check.yml/badge.svg)

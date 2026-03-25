@@ -1,0 +1,60 @@
+name: Reusable Build & Test
+
+on:
+  workflow_call:
+    inputs:
+      python_version:
+        required: true
+        type: string
+      run_tests:
+        required: false
+        type: boolean
+        default: true
+
+    outputs:
+      test_result:
+        description: "Test result status"
+        value: ${{ jobs.build-test.outputs.test_result }}
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    outputs:
+      test_result: ${{ steps.set-result.outputs.result }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ inputs.python_version }}
+
+      - name: Install dependencies
+        run: |
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+
+      - name: Run tests
+        id: run-tests
+        if: ${{ inputs.run_tests }}
+        continue-on-error: true
+        run: |
+          if [ -f test.sh ]; then
+            chmod +x test.sh
+            ./test.sh
+          else
+            echo "No test script found"
+          fi
+
+      - name: Set test result
+        id: set-result
+        run: |
+          if [ "${{ steps.run-tests.outcome }}" = "success" ]; then
+            echo "result=passed" >> $GITHUB_OUTPUT
+          else
+            echo "result=failed" >> $GITHUB_OUTPUT
+          fi
