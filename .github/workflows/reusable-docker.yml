@@ -36,19 +36,20 @@ jobs:
         run: |
           echo "${{ secrets.docker_token }}" | docker login -u "${{ secrets.docker_username }}" --password-stdin
 
-      - name: Build images
+      - name: Build image
         run: |
-          docker build -f Dockerfile -t ${{ secrets.docker_username }}/${{ inputs.image_name }}:${{ inputs.tag }} .
-       - name: Debug image
-         run: echo "${{ secrets.docker_username }}/${{ inputs.image_name }}:${{ inputs.tag }}"
+          docker build -f dockerfile -t ${{ secrets.docker_username }}/${{ inputs.image_name }}:${{ inputs.tag }} .
 
-      - name: scaning docker images
+      - name: Debug image
+        run: echo "${{ secrets.docker_username }}/${{ inputs.image_name }}:${{ inputs.tag }}"
+
+      - name: Scan Docker image
         uses: aquasecurity/trivy-action@master
-        with: 
+        with:
           image-ref: ${{ secrets.docker_username }}/${{ inputs.image_name }}:${{ inputs.tag }}
           format: 'table'
           exit-code: '1'
-          severity: 'CRITICAL,HIGH'    
+          severity: 'CRITICAL,HIGH'
 
       - name: Push image
         run: |
