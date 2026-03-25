@@ -39,6 +39,13 @@ jobs:
       - name: Build image
         run: |
           docker build -f dockerfile -t ${{ secrets.docker_username }}/${{ inputs.image_name }}:${{ inputs.tag }} .
+      - name: scaning docker images
+        uses: aquasecurity/trivy-action@master
+        with: 
+          image_ref: '${{ secrets.docker_username }}/${{ inputs.image_name }}:${{ inputs.tag }}'
+          format: 'table'
+          exit-code: '1'
+          serverity: 'CRITICAL,HIGH'    
 
       - name: Push image
         run: |
