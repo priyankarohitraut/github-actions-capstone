@@ -1,28 +1,32 @@
-name: main pipline
-on: 
- push:
-   branches: [main]
-jobs: 
+name: main pipeline
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
   build-test:
     uses: ./.github/workflows/reusable-build-test.yml
     with:
-      python_version: "3.9"
-  docker: 
+      python_version: "3.11"
+
+  docker:
     needs: build-test
     uses: ./.github/workflows/reusable-docker.yml
     with:
-      images_name: ${{ secrets.DOCKER_USERNAME }}/myapp
+      image_name: capstone-app
       tag: latest
     secrets:
-      docker_username: ${{ secrets.DOCKER_USERNAME}}
+      docker_username: ${{ secrets.DOCKER_USERNAME }}
       docker_token: ${{ secrets.DOCKER_TOKEN }}
+
   deploy:
     needs: docker
-    runs-on: ubuntu-latest
-    environment: production
+    runs-on: self-hosted
     steps:
       - name: Deploy step
-        run: echo "Deploying image $ {{ needs.docker.outputs.image_url }} to production"
-
-
-
+        run: |
+          echo "Deploying image ${{ needs.docker.outputs.image_url }} to production"

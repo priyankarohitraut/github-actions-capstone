@@ -4,7 +4,10 @@ on:
   pull_request:
     branches:
       - main
-    types: [opened, synchronize]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
 
 jobs:
   build-test:
@@ -16,7 +19,10 @@ jobs:
   pr-comment:
     runs-on: ubuntu-latest
     needs: build-test
+    if: ${{ needs.build-test.result == 'success' }}
 
     steps:
       - name: Print PR summary
-        run: echo "PR checks passed for branch: ${{ github.head_ref }}"
+        run: |
+          echo "PR checks passed for branch: ${{ github.head_ref }}"
+          echo "Reusable test result: ${{ needs.build-test.outputs.test_result }}"

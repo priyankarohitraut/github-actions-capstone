@@ -2,48 +2,59 @@ name: Scheduled Health Check
 
 on:
   schedule:
-    - cron: '0 */12 * * *'   # every 12 hours
+    - cron: '0 */12 * * *'
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   health-check:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    env:
+      IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/capstone-app:latest
+      CONTAINER_NAME: health-container
+      HOST_PORT: 5001
 
     steps:
+      - name: Clean up any previous health-check container
+        run: |
+          docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
+
       - name: Pull latest Docker image
-        run: docker pull ${{ secrets.DOCKER_USERNAME }}/capstone-app:latest
+        run: docker pull "$IMAGE_NAME"
 
       - name: Run container
         run: |
-          docker run -d -p 5000:5000 --name health-container \
-          ${{ secrets.DOCKER_USERNAME }}/capstone-app:latest
-
-      - name: Wait for app to start
-        run: sleep 5
+          docker run -d --rm -p 127.0.0.1:${HOST_PORT}:5000 --name "$CONTAINER_NAME" "$IMAGE_NAME"
 
       - name: Check health endpoint
         id: health
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/health)
-          echo "HTTP Status: $STATUS"
+          for attempt in 1 2 3 4 5; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${HOST_PORT}/health" || true)
+            echo "Attempt ${attempt}: HTTP Status ${STATUS}"
+            if [ "$STATUS" = "200" ]; then
+              echo "status=PASSED" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            sleep 3
+          done
 
-          if [ "$STATUS" -eq 200 ]; then
-            echo "status=PASSED" >> $GITHUB_OUTPUT
-          else
-            echo "status=FAILED" >> $GITHUB_OUTPUT
-            exit 1
-          fi
+          echo "status=FAILED" >> "$GITHUB_OUTPUT"
+          docker logs "$CONTAINER_NAME" || true
+          exit 1
 
       - name: Stop and remove container
         if: always()
         run: |
-          docker stop health-container || true
-          docker rm health-container || true
+          docker stop "$CONTAINER_NAME" || true
+          docker rm "$CONTAINER_NAME" || true
 
       - name: Generate summary
         if: always()
         run: |
           echo "## Health Check Report" >> $GITHUB_STEP_SUMMARY
-          echo "- Image: ${{ secrets.DOCKER_USERNAME }}/capstone-app:latest" >> $GITHUB_STEP_SUMMARY
+          echo "- Image: $IMAGE_NAME" >> $GITHUB_STEP_SUMMARY
           echo "- Status: ${{ steps.health.outputs.status }}" >> $GITHUB_STEP_SUMMARY
           echo "- Time: $(date)" >> $GITHUB_STEP_SUMMARY

@@ -38,7 +38,7 @@ jobs:
 
       - name: Build image
         run: |
-          docker build -t ${{ secrets.docker_username }}/${{ inputs.image_name }}:${{ inputs.tag }} .
+          docker build -f dockerfile -t ${{ secrets.docker_username }}/${{ inputs.image_name }}:${{ inputs.tag }} .
 
       - name: Push image
         run: |
